@@ -29,6 +29,8 @@ export const config = {
       .map((s) => s.trim())
       .filter(Boolean),
   ),
+  scaleToken: process.env.SCALE_TOKEN?.trim() || undefined,
+  scaleDataFile: process.env.SCALE_DATA_FILE?.trim() || "/data/scale.json",
   accessTokenTtlSec: Number(process.env.ACCESS_TOKEN_TTL_SEC ?? 3600),
   refreshTokenTtlSec: Number(process.env.REFRESH_TOKEN_TTL_SEC ?? 60 * 60 * 24 * 90),
 };

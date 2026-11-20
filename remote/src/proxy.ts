@@ -16,6 +16,7 @@ import {
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 import { config } from "./config.js";
+import { callScaleTool, scaleTool } from "./scale.js";
 
 const require = createRequire(import.meta.url);
 const garminEntry = require.resolve("@indaco/garmin-personal-mcp/dist/index.js");
@@ -61,7 +62,7 @@ export async function createProxyServer(): Promise<Server> {
   const up = await getUpstream();
   const caps = up.getServerCapabilities() ?? {};
   const capabilities: ServerCapabilities = {
-    ...(caps.tools ? { tools: {} } : {}),
+    tools: {},
     ...(caps.prompts ? { prompts: {} } : {}),
     ...(caps.resources ? { resources: {} } : {}),
   };
@@ -71,12 +72,14 @@ export async function createProxyServer(): Promise<Server> {
     { capabilities, instructions: up.getInstructions() },
   );
 
-  if (caps.tools) {
+  {
     server.setRequestHandler(ListToolsRequestSchema, async (req) => {
       const r = await up.listTools(req.params, TIMEOUT);
-      return { ...r, tools: r.tools.filter((t) => !config.hiddenTools.has(t.name)) };
+      const tools = r.tools.filter((t) => !config.hiddenTools.has(t.name));
+      return { ...r, tools: req.params?.cursor ? tools : [scaleTool, ...tools] };
     });
     server.setRequestHandler(CallToolRequestSchema, async (req) => {
+      if (req.params.name === scaleTool.name) return callScaleTool(req.params.arguments);
       if (config.hiddenTools.has(req.params.name)) {
         throw new McpError(ErrorCode.InvalidParams, `Tool ${req.params.name} is disabled on this server`);
       }

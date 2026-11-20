@@ -5,6 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { config } from "./config.js";
 import { SCOPE, SingleUserOAuthProvider } from "./oauth.js";
 import { createProxyServer, getUpstream } from "./proxy.js";
+import { getScale, postScale, requireScaleToken } from "./scale.js";
 
 const provider = new SingleUserOAuthProvider();
 setInterval(() => provider.sweep(), 60_000).unref();
@@ -31,6 +32,9 @@ app.use(
 app.post("/consent", express.urlencoded({ extended: false, limit: "16kb" }), (req, res, next) => {
   provider.consent(req, res).catch(next);
 });
+
+app.post("/api/scale", requireScaleToken, express.json({ limit: "16kb" }), postScale);
+app.get("/api/scale", requireScaleToken, getScale);
 
 const bearer = requireBearerAuth({
   verifier: provider,
